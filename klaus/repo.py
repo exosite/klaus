@@ -1,4 +1,5 @@
 import os
+import os.path
 import io
 import stat
 
@@ -13,6 +14,10 @@ from klaus.diff import prepare_udiff
 class FancyRepo(dulwich.repo.Repo):
     """A wrapper around Dulwich's Repo that adds some helper methods."""
     # TODO: factor out stuff into dulwich
+    def __init__(self, path, rootpath=None):
+        super(FancyRepo, self).__init__(path)
+        self.rootpath = rootpath
+
     @property
     def name(self):
         """Get repository name from path.
@@ -21,7 +26,11 @@ class FancyRepo(dulwich.repo.Repo):
         2. /x/y/ -> /x/y
         3. /x/y -> y
         """
-        return self.path.replace(".git", "").rstrip(os.sep).split(os.sep)[-1]
+        if self.rootpath is None:
+            return self.path.replace(".git", "").rstrip(os.sep).split(os.sep)[-1]
+        else:
+            relpath = os.path.relpath(self.path, self.rootpath)
+            return relpath.replace(".git", "").rstrip(os.sep)
 
     def get_last_updated_at(self):
         """Get datetime of last commit to this repository."""

@@ -34,15 +34,38 @@ def poll_for_changes(interval, dir):
             _.should_reload = True
 
 
+def find_git_repos(repos_root):
+    all_repos = []
+    for dirpath, dirnames, _ in os.walk(repos_root):
+        for name in dirnames:
+            fullpath = os.path.join(dirpath, name)
+            headpath = os.path.join(fullpath, 'HEAD')
+            if fullpath.endswith('.git'):
+                if os.path.isfile(headpath):
+                    all_repos.append(fullpath)
+                    print("Found {0}".format(fullpath))
+                else:
+                    print("No HEAD in {0}!".format(fullpath))
+    return all_repos
+
+
 def make_autoreloading_app(repos_root, *args, **kwargs):
     def app(environ, start_response):
         if _.should_reload:
             # Refresh inner application with new repo list
             print("Reloading repository list...")
-            _.inner_app = make_app(
-                [os.path.join(repos_root, x) for x in os.listdir(repos_root)],
-                *args, **kwargs
-            )
+            repo_hierarchy = os.environ.get('KLAUS_REPO_HIERARCHY')
+            if repo_hierarchy == "y":
+                _.inner_app = make_app(
+                    find_git_repos(repos_root),
+                    repos_root=repos_root,
+                    *args, **kwargs
+                )
+            else:
+                _.inner_app = make_app(
+                    [os.path.join(repos_root, x) for x in os.listdir(repos_root)],
+                    *args, **kwargs
+                )
             _.should_reload = False
         return _.inner_app(environ, start_response)
 

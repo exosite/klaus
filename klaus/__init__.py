@@ -15,13 +15,14 @@ class Klaus(flask.Flask):
         'undefined': jinja2.StrictUndefined
     }
 
-    def __init__(self, repo_paths, site_name, use_smarthttp, ctags_policy='none'):
+    def __init__(self, repo_paths, site_name, use_smarthttp, ctags_policy='none', repos_root=None):
         """(See `make_app` for parameter descriptions.)"""
-        repo_objs = [FancyRepo(path) for path in repo_paths]
+        repo_objs = [FancyRepo(path, repos_root) for path in repo_paths]
         self.repos = dict((repo.name, repo) for repo in repo_objs)
         self.site_name = site_name
         self.use_smarthttp = use_smarthttp
         self.ctags_policy = ctags_policy
+        self.repos_root = repos_root
 
         flask.Flask.__init__(self, __name__)
 
@@ -80,7 +81,7 @@ class Klaus(flask.Flask):
 
 def make_app(repo_paths, site_name, use_smarthttp=False, htdigest_file=None,
              require_browser_auth=False, disable_push=False, unauthenticated_push=False,
-             ctags_policy='none'):
+             ctags_policy='none', repos_root=None):
     """
     Returns a WSGI app with all the features (smarthttp, authentication)
     already patched in.
@@ -103,6 +104,7 @@ def make_app(repo_paths, site_name, use_smarthttp=False, htdigest_file=None,
         - 'tags-and-branches': use ctags for revisions that are the HEAD of
           a tag or branc
         - 'ALL': use ctags for all revisions, may result in high server load!
+    :param repos_root: Root directory for repo search (used for naming repos)
     """
     if unauthenticated_push:
         if not use_smarthttp:
@@ -119,6 +121,7 @@ def make_app(repo_paths, site_name, use_smarthttp=False, htdigest_file=None,
         site_name,
         use_smarthttp,
         ctags_policy,
+        repos_root,
     )
     app.wsgi_app = utils.ProxyFix(app.wsgi_app)
 
