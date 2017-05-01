@@ -54,16 +54,19 @@ def make_autoreloading_app(repos_root, *args, **kwargs):
         if _.should_reload:
             # Refresh inner application with new repo list
             print("Reloading repository list...")
+            authorizer = os.environ.get('KLAUS_AUTHORIZER')
             repo_hierarchy = os.environ.get('KLAUS_REPO_HIERARCHY')
             if repo_hierarchy == "y":
                 _.inner_app = make_app(
                     find_git_repos(repos_root),
                     repos_root=repos_root,
+                    authorizer=authorizer,
                     *args, **kwargs
                 )
             else:
                 _.inner_app = make_app(
                     [os.path.join(repos_root, x) for x in os.listdir(repos_root)],
+                    authorizer=authorizer,
                     *args, **kwargs
                 )
             _.should_reload = False

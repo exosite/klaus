@@ -4,3 +4,4 @@ httpauth
 humanize
 Jinja2
 Pygments
+PyYAML

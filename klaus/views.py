@@ -29,6 +29,7 @@ README_FILENAMES = [b'README', b'README.md', b'README.rst']
 
 def repo_list():
     """Show a list of all repos and can be sorted by last update."""
+    authcache = current_app.auth.get_cache(request)
     if 'by-last-update' in request.args:
         sort_key = lambda repo: repo.get_last_updated_at()
         reverse = True
@@ -36,6 +37,7 @@ def repo_list():
         sort_key = lambda repo: repo.name
         reverse = False
     repos = sorted(current_app.repos.values(), key=sort_key, reverse=reverse)
+    repos = [x for x in repos if authcache.can_view(x.name)]
     return render_template('repo_list.html', repos=repos, base_href=None)
 
 

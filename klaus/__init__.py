@@ -4,6 +4,8 @@ import httpauth
 import dulwich.web
 from klaus import views, utils
 from klaus.repo import FancyRepo
+from klaus.auth import make_authorizer, BaseAuth
+import klaus.authlist
 
 
 KLAUS_VERSION = utils.guess_git_revision() or '1.1.0'
@@ -15,7 +17,8 @@ class Klaus(flask.Flask):
         'undefined': jinja2.StrictUndefined
     }
 
-    def __init__(self, repo_paths, site_name, use_smarthttp, ctags_policy='none', repos_root=None):
+    def __init__(self, repo_paths, site_name, use_smarthttp, ctags_policy='none',
+                 repos_root=None, authorizer=None):
         """(See `make_app` for parameter descriptions.)"""
         repo_objs = [FancyRepo(path, repos_root) for path in repo_paths]
         self.repos = dict((repo.name, repo) for repo in repo_objs)
@@ -23,6 +26,11 @@ class Klaus(flask.Flask):
         self.use_smarthttp = use_smarthttp
         self.ctags_policy = ctags_policy
         self.repos_root = repos_root
+
+        if authorizer is not None:
+            self.auth = make_authorizer(authorizer)
+        else:
+            self.auth = BaseAuth
 
         flask.Flask.__init__(self, __name__)
 
@@ -81,7 +89,7 @@ class Klaus(flask.Flask):
 
 def make_app(repo_paths, site_name, use_smarthttp=False, htdigest_file=None,
              require_browser_auth=False, disable_push=False, unauthenticated_push=False,
-             ctags_policy='none', repos_root=None):
+             ctags_policy='none', repos_root=None, authorizer=None):
     """
     Returns a WSGI app with all the features (smarthttp, authentication)
     already patched in.
@@ -122,6 +130,7 @@ def make_app(repo_paths, site_name, use_smarthttp=False, htdigest_file=None,
         use_smarthttp,
         ctags_policy,
         repos_root,
+        authorizer,
     )
     app.wsgi_app = utils.ProxyFix(app.wsgi_app)
 
