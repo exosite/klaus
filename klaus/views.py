@@ -5,7 +5,7 @@ from flask import request, render_template, current_app, url_for
 from flask.views import View
 
 from werkzeug.wrappers import Response
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, Forbidden
 
 import dulwich.objects
 import dulwich.archive
@@ -81,8 +81,11 @@ class BaseRepoView(View):
         self.context = {}
 
     def dispatch_request(self, repo, rev=None, path=''):
-        self.make_template_context(repo, rev, path.strip('/'))
-        return self.get_response()
+        authcache = current_app.auth.get_cache(request)
+        if authcache.can_view(repo):
+            self.make_template_context(repo, rev, path.strip('/'))
+            return self.get_response()
+        raise Forbidden("You cannot view repository {0}.  Please contact the administrator.".format(repo))
 
     def get_response(self):
         return render_template(self.template_name, **self.context)
